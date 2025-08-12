@@ -1,34 +1,27 @@
+import { getEmail, clearEmail } from "@/app/auth";
+import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { supabase } from "./supabase";
 
-export default function Topbar() {
-  const [coins, setCoins] = useState<number>(0);
+export default function Topbar(){
+  const nav = useNavigate();
+  const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    let channel: any;
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data } = await supabase.from("profiles").select("coins").eq("id", user.id).single();
-      if (data) setCoins(data.coins ?? 0);
-
-      channel = supabase.channel("coins_rt")
-        .on("postgres_changes",
-            { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
-            payload => setCoins(payload.new.coins ?? 0)
-        ).subscribe();
-    })();
-    return () => { if (channel) supabase.removeChannel(channel); };
+    setEmail(getEmail());
   }, []);
+
+  const logout = () => {
+    clearEmail();
+    nav("/login", { replace: true });
+  };
 
   return (
     <div className="sticky top-0 z-20 bg-[#0f0f0f]/80 backdrop-blur border-b border-white/10">
       <div className="h-14 flex items-center justify-between px-4 md:px-6">
         <div className="text-yellow-400 font-semibold">🔐 Vault • <span className="text-white">Unlock Rewards</span></div>
         <div className="flex items-center gap-3">
-          <div className="text-yellow-400">💰 {coins}</div>
-          <div className="w-8 h-8 rounded-full bg-white/10" />
+          {email && <div className="text-xs opacity-70">{email}</div>}
+          <button onClick={logout} className="px-2 py-1 rounded bg-white/10 text-xs hover:bg-white/20">Logout</button>
         </div>
       </div>
     </div>
